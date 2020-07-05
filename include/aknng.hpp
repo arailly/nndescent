@@ -22,8 +22,8 @@ namespace aknng {
             added[data.id] = true;
         }
 
-        void add_neighbor(const Node& node) {
-            if (added.find(node.id) != added.end()) return;
+        int add_neighbor(const Node& node) {
+            if (added.find(node.id) != added.end()) return 0;
             added[node.id] = true;
             const auto dist = euclidean_distance(data, node.data);
             neighbors.emplace(dist, node.id);
@@ -34,6 +34,8 @@ namespace aknng {
                 neighbors.erase(tail_ptr);
                 added.erase(tail_ptr->second);
             }
+
+            return 1;
         }
 
         auto get_n_neighbors() const { return neighbors.size(); }
@@ -50,6 +52,25 @@ namespace aknng {
         auto end() const { return nodes.end(); }
         decltype(auto) operator [] (size_t i) { return nodes[i]; }
         decltype(auto) operator [] (const Node& n) { return nodes[n.id]; }
+
+        auto get_neighbors_list() {
+            vector<vector<int>> neighbors_list(nodes.size());
+            unordered_map<int, bool> added;
+
+            for (const auto& node : nodes) {
+                for (const auto& neighbor_pair : node.neighbors) {
+                    const auto neighbor_id = neighbor_pair.second;
+
+                    // get neighbors
+                    neighbors_list[node.id].emplace_back(neighbor_id);
+
+                    // get reverse neighbors
+                    neighbors_list[neighbor_id].emplace_back(node.id);
+                }
+            }
+
+            return neighbors_list;
+        }
 
         void build(string data_path, int n = -1) {
             const auto dataset = load_data(data_path, n);
