@@ -44,5 +44,8 @@ TEST(aknng, build) {
     auto aknng = AKNNG(degree);
     aknng.build(data_path);
 
-    ASSERT_EQ(aknng.nodes.size(), 11);
+    int test_id = 0;
+    const auto& neighbors = aknng.nodes[test_id].neighbors;
+    ASSERT_EQ(neighbors.cbegin()->second, 3);
+    ASSERT_EQ((--neighbors.cend())->second, 2);
 }

@@ -24,21 +24,22 @@ namespace aknng {
 
         int add_neighbor(const Node& node) {
             if (added.find(node.id) != added.end()) return 0;
-            added[node.id] = true;
 
             const auto dist = euclidean_distance(data, node.data);
 
             if (neighbors.size() < degree) {
                 neighbors.emplace(dist, node.id);
+                added[node.id] = true;
                 return 1;
             }
 
             const auto furthest_ptr = --neighbors.cend();
             const auto furthest_dist = furthest_ptr->first;
 
-            if (dist > furthest_dist) return 0;
+            if (dist >= furthest_dist) return 0;
 
             neighbors.emplace(dist, node.id);
+            added[node.id] = true;
 
             // delete neighbor if over degree
             if (neighbors.size() > degree) {
