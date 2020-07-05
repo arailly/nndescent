@@ -119,6 +119,40 @@ namespace aknng {
                 if (n_updated <= 0) break;
             }
         }
+
+        void save(const string& save_path) {
+            // csv
+            if (is_csv(save_path)) {
+                ofstream ofs(save_path);
+                string line;
+                for (const auto& node : nodes) {
+                    for (const auto& neighbor_pair : node.neighbors) {
+                        line = to_string(node.data.id) + ',' +
+                               to_string(neighbor_pair.second) + ',' +
+                               to_string(neighbor_pair.first);
+                        ofs << line << endl;
+                    }
+                }
+                return;
+            }
+
+            // dir
+            vector<string> lines(static_cast<unsigned long>(ceil(nodes.size() / 1000.0)));
+            for (const auto& node : nodes) {
+                const size_t line_i = node.data.id / 1000;
+                for (const auto& neighbor_pair : node.neighbors) {
+                    lines[line_i] += to_string(node.data.id) + "," +
+                                     to_string(neighbor_pair.second) +
+                                     to_string(neighbor_pair.first) + "\n";
+                }
+            }
+
+            for (int i = 0; i < lines.size(); i++) {
+                const string path = save_path + "/" + to_string(i) + ".csv";
+                ofstream ofs(path);
+                ofs << lines[i];
+            }
+        }
     };
 }
 

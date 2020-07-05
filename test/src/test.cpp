@@ -49,3 +49,15 @@ TEST(aknng, build) {
     ASSERT_EQ(neighbors.cbegin()->second, 3);
     ASSERT_EQ((--neighbors.cend())->second, 2);
 }
+
+TEST(aknng, save) {
+    string base_dir = "/tmp/tmp.aknng/test/src/";
+    string data_path = base_dir + "data1.csv";
+
+    int degree = 3;
+    auto aknng = AKNNG(degree);
+    aknng.build(data_path);
+
+    string save_path = base_dir + "graph1.csv";
+    aknng.save(save_path);
+}
