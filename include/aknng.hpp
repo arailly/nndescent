@@ -25,20 +25,29 @@ namespace aknng {
         int add_neighbor(const Node& node) {
             if (added.find(node.id) != added.end()) return 0;
             added[node.id] = true;
+
             const auto dist = euclidean_distance(data, node.data);
+
+            if (neighbors.size() < degree) {
+                neighbors.emplace(dist, node.id);
+                return 1;
+            }
+
+            const auto furthest_ptr = --neighbors.cend();
+            const auto furthest_dist = furthest_ptr->first;
+
+            if (dist > furthest_dist) return 0;
+
             neighbors.emplace(dist, node.id);
 
             // delete neighbor if over degree
             if (neighbors.size() > degree) {
-                const auto tail_ptr = --neighbors.cend();
-                neighbors.erase(tail_ptr);
-                added.erase(tail_ptr->second);
+                neighbors.erase(furthest_ptr);
+                added.erase(furthest_ptr->second);
             }
 
             return 1;
         }
-
-        auto get_n_neighbors() const { return neighbors.size(); }
     };
 
     struct AKNNG {
@@ -87,6 +96,23 @@ namespace aknng {
                     const auto& random_node = nodes[dist(engine)];
                     node.add_neighbor(random_node);
                 }
+            }
+
+            while (true) {
+                int n_updated = 0;
+                const auto neighbors_list = get_neighbors_list();
+                for (int id = 0; id < nodes.size(); ++id) {
+                    auto& node = nodes[id];
+
+                    for (const auto neighbor_id_1 : neighbors_list[id]) {
+                        for (const auto neighbor_id_2 : neighbors_list[neighbor_id_1]) {
+                            const auto& neighbor = nodes[neighbor_id_2];
+                            n_updated += node.add_neighbor(neighbor);
+                        }
+                    }
+                }
+
+                if (n_updated <= 0) break;
             }
         }
     };
