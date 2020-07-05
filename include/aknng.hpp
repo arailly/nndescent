@@ -102,17 +102,20 @@ namespace aknng {
             while (true) {
                 int n_updated = 0;
                 const auto neighbors_list = get_neighbors_list();
-                for (int id = 0; id < nodes.size(); ++id) {
-                    auto& node = nodes[id];
+#pragma omp parallel
+                {
+#pragma omp for schedule(dynamic, 1000) nowait reduction(+:n_updated)
+                    for (int id = 0; id < nodes.size(); ++id) {
+                        auto& node = nodes[id];
 
-                    for (const auto neighbor_id_1 : neighbors_list[id]) {
-                        for (const auto neighbor_id_2 : neighbors_list[neighbor_id_1]) {
-                            const auto& neighbor = nodes[neighbor_id_2];
-                            n_updated += node.add_neighbor(neighbor);
+                        for (const auto neighbor_id_1 : neighbors_list[id]) {
+                            for (const auto neighbor_id_2 : neighbors_list[neighbor_id_1]) {
+                                const auto& neighbor = nodes[neighbor_id_2];
+                                n_updated += node.add_neighbor(neighbor);
+                            }
                         }
                     }
-                }
-
+                };
                 if (n_updated <= 0) break;
             }
         }
