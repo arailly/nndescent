@@ -51,8 +51,8 @@ namespace aknng {
         decltype(auto) operator [] (size_t i) { return nodes[i]; }
         decltype(auto) operator [] (const Node& n) { return nodes[n.id]; }
 
-        void build(string data_path) {
-            const auto dataset = load_data(data_path);
+        void build(string data_path, int n = -1) {
+            const auto dataset = load_data(data_path, n);
 
             // init nodes
             for (auto& data : dataset) {
@@ -60,7 +60,7 @@ namespace aknng {
             }
 
             // init neighbors
-            uniform_int_distribution<int> dist(0, nodes.size());
+            uniform_int_distribution<int> dist(0, nodes.size() - 1);
             for (auto& node : nodes) {
                 while (node.neighbors.size() < degree) {
                     const auto& random_node = nodes[dist(engine)];
