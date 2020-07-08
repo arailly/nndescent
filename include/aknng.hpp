@@ -142,7 +142,7 @@ namespace aknng {
                 const size_t line_i = node.data.id / 1000;
                 for (const auto& neighbor_pair : node.neighbors) {
                     lines[line_i] += to_string(node.data.id) + "," +
-                                     to_string(neighbor_pair.second) +
+                                     to_string(neighbor_pair.second) + "," +
                                      to_string(neighbor_pair.first) + "\n";
                 }
             }
