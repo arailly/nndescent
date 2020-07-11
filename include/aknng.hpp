@@ -82,9 +82,7 @@ namespace aknng {
             return neighbors_list;
         }
 
-        void build(string data_path, int n = -1) {
-            const auto dataset = load_data(data_path, n);
-
+        void build(const Dataset<>& dataset) {
             // init nodes
             for (auto& data : dataset) {
                 nodes.emplace_back(move(data), degree);
@@ -118,6 +116,10 @@ namespace aknng {
                 };
                 if (n_updated <= 0) break;
             }
+        }
+
+        void build(string data_path, int n = -1) {
+            build(load_data(data_path, n));
         }
 
         void save(const string& save_path) {
