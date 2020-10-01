@@ -11,11 +11,11 @@ int main() {
 
     const auto start = get_now();
 
-    int degree = 25, n = 1000;
+    int degree = 25, n = 10;
     AKNNG aknng(degree);
     aknng.build(data_path, n);
 
-    string save_path = base_dir + "index/aknng/sift/data1000k-d25/";
+    string save_path = base_dir + "index/aknng/sift/data10k-d25/";
     aknng.save(save_path);
 
     const auto end = get_now();

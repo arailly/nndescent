@@ -11,6 +11,8 @@ using namespace std;
 using namespace arailib;
 
 namespace aknng {
+    auto calc_dist = select_distance();
+
     struct Node {
         int id;
         Data<> data;
@@ -25,7 +27,7 @@ namespace aknng {
         int add_neighbor(const Node& node) {
             if (added.find(node.id) != added.end()) return 0;
 
-            const auto dist = euclidean_distance(data, node.data);
+            const auto dist = calc_dist(data, node.data);
 
             if (neighbors.size() < degree) {
                 neighbors.emplace(dist, node.id);
@@ -103,10 +105,10 @@ namespace aknng {
 #pragma omp parallel
                 {
 #pragma omp for schedule(dynamic, 1000) nowait reduction(+:n_updated)
-                    for (int id = 0; id < nodes.size(); ++id) {
-                        auto& node = nodes[id];
+                    for (int i = 0; i < nodes.size(); ++i) {
+                        auto& node = nodes[i];
 
-                        for (const auto neighbor_id_1 : neighbors_list[id]) {
+                        for (const auto neighbor_id_1 : neighbors_list[node.id]) {
                             for (const auto neighbor_id_2 : neighbors_list[neighbor_id_1]) {
                                 const auto& neighbor = nodes[neighbor_id_2];
                                 n_updated += node.add_neighbor(neighbor);

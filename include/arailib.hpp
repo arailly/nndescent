@@ -13,6 +13,7 @@
 #include <exception>
 #include <stdexcept>
 #include <omp.h>
+#include <x86intrin.h>
 #include <json.hpp>
 
 using namespace std;
@@ -33,7 +34,7 @@ namespace arailib {
         return result;
     }
 
-    template <typename T = double>
+    template <typename T = float>
     struct Data {
         size_t id;
         std::vector<T> x;
@@ -76,22 +77,22 @@ namespace arailib {
         }
     };
 
-    template <typename T = double>
+    template <typename T = float>
     using Dataset = vector<Data<T>>;
 
-    template <typename T = double>
+    template <typename T = float>
     using Series = vector<Data<T>>;
 
-    template <typename T = double>
+    template <typename T = float>
     using RefSeries = vector<reference_wrapper<const Data<T>>>;
 
-    template <typename T = double>
+    template <typename T = float>
     using SeriesList = vector<vector<Data<T>>>;
 
-    template <typename T = double>
-    using DistanceFunction = function<double(Data<T>, Data<T>)>;
+    template <typename T = float>
+    using DistanceFunction = function<float(Data<T>, Data<T>)>;
 
-    template <typename T = double>
+    template <typename T = float>
     auto euclidean_distance(const Data<T>& p1, const Data<T>& p2) {
         float result = 0;
         for (size_t i = 0; i < p1.size(); i++) {
@@ -101,7 +102,7 @@ namespace arailib {
         return result;
     }
 
-    template <typename T = double>
+    template <typename T = float>
     auto manhattan_distance(const Data<T>& p1, const Data<T>& p2) {
         float result = 0;
         for (size_t i = 0; i < p1.size(); i++) {
@@ -110,7 +111,7 @@ namespace arailib {
         return result;
     }
 
-    template <typename T = double>
+    template <typename T = float>
     auto l2_norm(const Data<T>& p) {
         float result = 0;
         for (size_t i = 0; i < p.size(); i++) {
@@ -120,12 +121,12 @@ namespace arailib {
         return result;
     }
 
-    template <typename T = double>
+    template <typename T = float>
     auto clip(const T val, const T min_val, const T max_val) {
         return max(min(val, max_val), min_val);
     }
 
-    template <typename T = double>
+    template <typename T = float>
     auto cosine_similarity(const Data<T>& p1, const Data<T>& p2) {
         float val = inner_product(p1.begin(), p1.end(), p2.begin(), 0.0)
             / (l2_norm(p1) * l2_norm(p2));
@@ -134,19 +135,84 @@ namespace arailib {
 
     constexpr float pi = static_cast<const float>(3.14159265358979323846264338);
 
-    template <typename T = double>
+    template <typename T = float>
     auto angular_distance(const Data<T>& p1, const Data<T>& p2) {
         return acos(cosine_similarity(p1, p2)) / pi;
     }
 
-    auto select_distance(const string& distance) {
-        if (distance == "euclidean") return euclidean_distance<double>;
-        if (distance == "manhattan") return manhattan_distance<double>;
-        if (distance == "angular")   return angular_distance<double>;
+#ifdef __AVX__
+    // function for AVX
+    static inline __m128 masked_read(int d, const float *x) {
+
+        assert (0 <= d && d < 4);
+        __attribute__((__aligned__(16))) float buf[4] = {0, 0, 0, 0};
+        switch (d) {
+            case 3:
+                buf[2] = x[2];
+            case 2:
+                buf[1] = x[1];
+            case 1:
+                buf[0] = x[0];
+        }
+        return _mm_load_ps (buf);
+    }
+
+    float l2_sqr_avx(const float *x, const float *y, size_t d) {
+
+        __m256 msum1 = _mm256_setzero_ps();
+
+        while (d >= 8) {
+            __m256 mx = _mm256_loadu_ps (x); x += 8;
+            __m256 my = _mm256_loadu_ps (y); y += 8;
+            const __m256 a_m_b1 = mx - my;
+            msum1 += a_m_b1 * a_m_b1;
+            d -= 8;
+        }
+
+        __m128 msum2 = _mm256_extractf128_ps(msum1, 1);
+        msum2 +=       _mm256_extractf128_ps(msum1, 0);
+
+        if (d >= 4) {
+            __m128 mx = _mm_loadu_ps (x); x += 4;
+            __m128 my = _mm_loadu_ps (y); y += 4;
+            const __m128 a_m_b1 = mx - my;
+            msum2 += a_m_b1 * a_m_b1;
+            d -= 4;
+        }
+
+        if (d > 0) {
+            __m128 mx = masked_read (d, x);
+            __m128 my = masked_read (d, y);
+            __m128 a_m_b1 = mx - my;
+            msum2 += a_m_b1 * a_m_b1;
+        }
+
+        msum2 = _mm_hadd_ps (msum2, msum2);
+        msum2 = _mm_hadd_ps (msum2, msum2);
+        return  _mm_cvtss_f32 (msum2);
+    }
+
+    auto euclidean_distance_avx(const Data<float>& data1,
+                                const Data<float>& data2) {
+        const auto dim = data1.size();
+        const auto dist = l2_sqr_avx(&data1.x[0], &data2.x[0], dim);
+        return dist;
+    }
+#endif
+
+    auto select_distance(const string& distance = "euclidean") {
+        if (distance == "euclidean") {
+#ifdef __AVX__
+            return euclidean_distance_avx;
+#endif
+            return euclidean_distance<float>;
+        }
+        if (distance == "manhattan") return manhattan_distance<float>;
+        if (distance == "angular")   return angular_distance<float>;
         else throw runtime_error("invalid distance");
     }
 
-    template <typename T = double>
+    template <typename T = float>
     vector<T> split(string &input, char delimiter = ',') {
         std::istringstream stream(input);
         std::string field;
@@ -159,7 +225,7 @@ namespace arailib {
         return result;
     }
 
-    template <typename T = double>
+    template <typename T = float>
     Dataset<T> read_csv(const std::string &path, const int& nrows = -1,
                         const bool &skip_header = false) {
         std::ifstream ifs(path);
@@ -178,7 +244,7 @@ namespace arailib {
 
     const int n_max_threads = omp_get_max_threads();
 
-    template <typename T = double>
+    template <typename T = float>
     Dataset<T> load_data(const string& path, int n = 0) {
         // file path
         if (path.rfind(".csv", path.size()) < path.size()) {
@@ -244,23 +310,126 @@ namespace arailib {
         return (path.rfind(".csv", path.size()) < path.size());
     }
 
+    constexpr auto double_max = numeric_limits<double>::max();
+    constexpr auto double_min = numeric_limits<double>::min();
+
+    constexpr auto float_max = numeric_limits<float>::max();
+    constexpr auto float_min = numeric_limits<float>::min();
+
+    struct Neighbor {
+        float dist;
+        int id;
+
+        Neighbor() : dist(float_max), id(-1) {}
+        Neighbor(float dist, int id) : dist(dist), id(id) {}
+    };
+
+    using Neighbors = vector<Neighbor>;
+
+    void sort_neighbors(Neighbors& neighbors) {
+        sort(neighbors.begin(), neighbors.end(),
+             [](const auto& n1, const auto& n2) { return n1.dist < n2.dist; });
+    }
+
+    struct CompLess {
+        constexpr bool operator()(const Neighbor& n1, const Neighbor& n2) const noexcept {
+            return n1.dist < n2.dist;
+        }
+    };
+
+    struct CompGreater {
+        constexpr bool operator()(const Neighbor& n1, const Neighbor& n2) const noexcept {
+            return n1.dist > n2.dist;
+        }
+    };
+
     template <typename T>
-    auto scan_knn_search(const Data<T>& query, int k, const Dataset<T> dataset,
+    auto scan_knn_search(const Data<T>& query, int k, const Dataset<T>& dataset,
                          string distance = "euclidean") {
         const auto df = select_distance(distance);
-        map<float, reference_wrapper<const Data<T>>> result_map;
+        auto threshold = float_max;
+
+        multimap<float, int> result_map;
         for (const auto& data : dataset) {
-            const auto dist = euclidean_distance(query, data);
-            result_map.emplace(dist, data);
-            if (result_map.size() > k) result_map.erase(--result_map.cend());
+            const auto dist = df(query, data);
+
+            if (result_map.size() < k || dist < threshold) {
+                result_map.emplace(dist, data.id);
+                threshold = (--result_map.cend())->first;
+                if (result_map.size() > k) result_map.erase(--result_map.cend());
+            }
         }
 
-        RefSeries<T> result;
+        vector<Neighbor> result;
         for (const auto& result_pair : result_map) {
-            result.emplace_back(result_pair.second);
+            result.emplace_back(result_pair.first, result_pair.second);
         }
 
         return result;
+    }
+
+    template <typename T = float>
+    auto calc_centroid(const Dataset<T>& dataset) {
+        const auto n = dataset.size();
+        const auto dim = dataset[0].size();
+
+        // get origin
+        Data<T> centroid(vector<T>(dim, 0));
+
+        // calc centroid
+        for (const auto& data : dataset) {
+            for (int i = 0; i < dim; ++i) {
+                centroid[i] += data[i] / n;
+            }
+        }
+
+        return centroid;
+    }
+
+    template <typename T = float>
+    auto calc_medoid(const Dataset<T>& dataset) {
+        const auto centroid = calc_centroid(dataset);
+        const auto search_result = scan_knn_search(centroid, 1, dataset);
+        return search_result[0].id;
+    }
+
+    auto calc_recall(const Neighbors& actual, const Neighbors& expect) {
+        float recall = 0;
+
+        for (const auto& n1 : actual) {
+            int match = 0;
+            for (const auto& n2 : expect) {
+                if (n1.id != n2.id) continue;
+                match = 1;
+                break;
+            }
+            recall += match;
+        }
+
+        recall /= actual.size();
+        return recall;
+    }
+
+    auto load_neighbors(const string& neighbor_path, int n, bool skip_header = false) {
+        ifstream ifs(neighbor_path);
+        if (!ifs) throw runtime_error("Can't open file: " + neighbor_path);
+
+        vector<Neighbors> neighbors_list(n);
+        string line;
+
+        if (skip_header) getline(ifs, line);
+
+        while(getline(ifs, line)) {
+            const auto row = split(line);
+
+            const int head_id = row[0];
+            const int tail_id = row[1];
+            const float dist = row[2];
+
+            neighbors_list[head_id].emplace_back(dist, tail_id);
+        }
+
+        return neighbors_list;
     }
 }
 
