@@ -6,8 +6,9 @@ using namespace std;
 using namespace arailib;
 using namespace aknng;
 
+string base_dir = "/tmp/tmp.dH0F0yrqaE/test/src/";
+
 TEST(aknng, get_neighbors_list) {
-    string base_dir = "/tmp/tmp.aknng/test/src/";
     string data_path = base_dir + "data1.csv";
 
     int degree = 3;
@@ -37,7 +38,6 @@ TEST(aknng, get_neighbors_list) {
 }
 
 TEST(aknng, build) {
-    string base_dir = "/tmp/tmp.aknng/test/src/";
     string data_path = base_dir + "data1.csv";
 
     int degree = 3;
@@ -51,7 +51,6 @@ TEST(aknng, build) {
 }
 
 TEST(aknng, save) {
-    string base_dir = "/tmp/tmp.aknng/test/src/";
     string data_path = base_dir + "data1.csv";
 
     int degree = 3;
@@ -60,4 +59,16 @@ TEST(aknng, save) {
 
     string save_path = base_dir + "graph1.csv";
     aknng.save(save_path);
+}
+
+TEST(aknng, build_angular) {
+    string data_path = base_dir + "data1.csv";
+
+    int degree = 2;
+    auto aknng = AKNNG(degree, "angular");
+    aknng.build(data_path);
+
+    int test_id = 3;
+    const auto& neighbors = aknng.nodes[test_id].neighbors;
+    ASSERT_EQ(neighbors.cbegin()->second, 10);
 }

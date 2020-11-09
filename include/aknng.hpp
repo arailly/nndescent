@@ -11,23 +11,24 @@ using namespace std;
 using namespace arailib;
 
 namespace aknng {
-    auto calc_dist = select_distance();
-
     struct Node {
         int id;
         Data<> data;
         int degree;
         multimap<double, int> neighbors;
         unordered_map<size_t, bool> added;
+        DistanceFunction<> df;
 
-        Node(const Data<>& data, int degree) : data(data), id(data.id), degree(degree) {
+        Node(const Data<>& data, int degree,
+             DistanceFunction<> df):
+                data(data), id(data.id), degree(degree), df(df) {
             added[data.id] = true;
         }
 
         int add_neighbor(const Node& node) {
             if (added.find(node.id) != added.end()) return 0;
 
-            const auto dist = calc_dist(data, node.data);
+            const auto dist = df(data, node.data);
 
             if (neighbors.size() < degree) {
                 neighbors.emplace(dist, node.id);
@@ -57,8 +58,12 @@ namespace aknng {
         vector<Node> nodes;
         int degree;
         mt19937 engine;
+        DistanceFunction<> df;
 
-        AKNNG(int degree) : degree(degree), engine(42) {}
+        AKNNG(int degree, string dist_kind = "euclidean") :
+                degree(degree), df(select_distance(dist_kind)),
+                engine(42) {}
+
         auto size() const { return nodes.size(); }
         auto begin() const { return nodes.begin(); }
         auto end() const { return nodes.end(); }
@@ -87,7 +92,7 @@ namespace aknng {
         void build(const Dataset<>& dataset) {
             // init nodes
             for (auto& data : dataset) {
-                nodes.emplace_back(move(data), degree);
+                nodes.emplace_back(move(data), degree, df);
             }
 
             // init neighbors
@@ -99,8 +104,9 @@ namespace aknng {
                 }
             }
 
+            auto n_itr = 0;
             while (true) {
-                int n_updated = 0;
+                long long int n_updated = 0;
                 const auto neighbors_list = get_neighbors_list();
 #pragma omp parallel
                 {
@@ -116,7 +122,9 @@ namespace aknng {
                         }
                     }
                 };
+                cout << "iteration: " << n_itr << ", update: " << n_updated << endl;
                 if (n_updated <= 0) break;
+                ++n_itr;
             }
         }
 
