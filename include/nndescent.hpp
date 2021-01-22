@@ -5,11 +5,11 @@
 #ifndef NNDESCENT_NNDESCENT_HPP
 #define NNDESCENT_NNDESCENT_HPP
 
-#include <arailib.hpp>
+#include <cpputil.hpp>
 #include <random>
 
 using namespace std;
-using namespace arailib;
+using namespace cpputil;
 
 namespace nndescent {
     struct Node {

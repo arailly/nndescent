@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <arailib.hpp>
+#include <cpputil.hpp>
 #include <nndescent.hpp>
 
 using namespace std;
-using namespace arailib;
+using namespace cpputil;
 using namespace nndescent;
 
 string base_dir = "/tmp/tmp.dH0F0yrqaE/test/src/";

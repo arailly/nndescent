@@ -1,5 +1,5 @@
-#ifndef ARAILIB_ARAILIB_HPP
-#define ARAILIB_ARAILIB_HPP
+#ifndef CPPUTIL_CPPUTIL_HPP
+#define CPPUTIL_CPPUTIL_HPP
 
 #include <iostream>
 #include <vector>
@@ -19,7 +19,7 @@
 using namespace std;
 using namespace nlohmann;
 
-namespace arailib {
+namespace cpputil {
     template<typename UnaryOperation, typename Iterable>
     Iterable fmap(UnaryOperation op, const Iterable &v) {
         Iterable result;
@@ -90,7 +90,7 @@ namespace arailib {
     using SeriesList = vector<vector<Data<T>>>;
 
     template <typename T = float>
-    using DistanceFunction = function<float(Data<T>, Data<T>)>;
+    using DistanceFunction = function<T(Data<T>, Data<T>)>;
 
     template <typename T = float>
     auto euclidean_distance(const Data<T>& p1, const Data<T>& p2) {
@@ -410,9 +410,30 @@ namespace arailib {
         return recall;
     }
 
-    auto load_neighbors(const string& neighbor_path, int n, bool skip_header = false) {
+    auto calc_recall(const Neighbors& actual, const Neighbors& expect, int k) {
+        float recall = 0;
+
+        for (int i = 0; i < k; ++i) {
+            const auto n1 = actual[i];
+            int match = 0;
+            for (int j = 0; j < k; ++j) {
+                const auto n2 = expect[j];
+                if (n1.id != n2.id) continue;
+                match = 1;
+                break;
+            }
+            recall += match;
+        }
+
+        recall /= actual.size();
+        return recall;
+    }
+
+    auto load_neighbors(const string& neighbor_path, int n,
+                        bool skip_header = false) {
         ifstream ifs(neighbor_path);
-        if (!ifs) throw runtime_error("Can't open file: " + neighbor_path);
+        if (!ifs)
+            throw runtime_error("Can't open file: " + neighbor_path);
 
         vector<Neighbors> neighbors_list(n);
         string line;
@@ -431,6 +452,59 @@ namespace arailib {
 
         return neighbors_list;
     }
+
+    struct DataArray {
+        vector<float> x;
+        int n, dim;
+
+        using Data = vector<float>::const_iterator;
+
+        DataArray(int n, int dim): n(n), dim(dim) {}
+
+        auto load(const vector<float>& v) { x = v; }
+
+        auto load_fvecs(const string& path) {
+            float* row = new float[dim];
+            ifstream ifs(path, ios::binary);
+            if (!ifs)
+                throw runtime_error("can't open file: " + path);
+
+            for (int i = 0; i < n; i++) {
+                int head = 0;
+                ifs.read((char*)&head, 4);
+                ifs.read((char*)row, head * sizeof(float));
+                for (int j = 0; j < dim; j++) {
+                    x[i * dim + j] = row[j];
+                }
+            }
+        }
+
+        auto load(const string& path) {
+            x.resize(n * dim);
+
+            // if path ends with ".fvecs"
+            if (path.rfind(".fvecs", path.size()) < path.size())
+                load_fvecs(path);
+            else
+                throw runtime_error("invalid file type");
+        }
+
+        decltype(auto) operator[](size_t i) { return x[i]; }
+
+        decltype(auto) find(size_t i) {
+            return next(x.begin(), i * dim);
+        }
+    };
+
+    auto euclidean_distance(DataArray::Data data_1, DataArray::Data data_2,
+                            int dim) {
+        float result = 0;
+        for (size_t i = 0; i < dim; i++, ++data_1, ++data_2) {
+            result += pow(*data_1 - *data_2, 2);
+        }
+        result = sqrt(result);
+        return result;
+    }
 }
 
-#endif //ARAILIB_ARAILIB_HPP
+#endif //CPPUTIL_CPPUTIL_HPP
