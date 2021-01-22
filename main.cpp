@@ -1,22 +1,21 @@
-#include <arailib.hpp>
+#include <cpputil.hpp>
 #include <nndescent.hpp>
 
 using namespace std;
-using namespace arailib;
+using namespace cpputil;
 using namespace nndescent;
 
 int main() {
-    string base_dir = "/home/arai/workspace/";
-    string data_path = base_dir + "dataset/hepmass/mass1000/data7m/";
-    string distance = "manhattan";
+    string base_dir = "/mnt/qnap/data";
+    string data_path = base_dir + "/sift/sift_base.fvecs";
 
     const auto start = get_now();
 
-    int degree = 40, n = 2000;
-    AKNNG aknng(degree, distance);
-    aknng.build(data_path, n);
+    int n = 1000000, dim = 128, K = 50;
+    AKNNG aknng(n, dim, K);
+    aknng.build(data_path);
 
-    string save_path = base_dir + "index/nndescent/sift/data1m-d50/null/";
+    string save_path = base_dir + "/sift/index/aknng/data1k-K20.csv";
     aknng.save(save_path);
 
     const auto end = get_now();
