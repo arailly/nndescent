@@ -17,8 +17,8 @@ using namespace nndescent;
 int main() {
     string data_path = "path/to/data.csv";
 
-    int degree = 15, n = 1000; // degree of AKNNG: approximate KNN graph and data size
-    AKNNG nndescent(degree); // init AKNNG
+    int K = 15, n = 1000; // K of AKNNG: approximate KNN graph and data size
+    AKNNG nndescent(K); // init AKNNG
     nndescent.build(data_path, n); // build AKNNG
 
     string save_path = "path/to/nndescent.csv";
