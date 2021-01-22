@@ -15,7 +15,7 @@ int main() {
     AKNNG aknng(n, dim, K);
     aknng.build(data_path);
 
-    string save_path = base_dir + "/sift/index/aknng/data1k-K20.csv";
+    string save_path = base_dir + "/sift/index/aknng/data1m-K50.csv";
     aknng.save(save_path);
 
     const auto end = get_now();
