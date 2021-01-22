@@ -2,15 +2,16 @@
 // Created by Yusuke Arai on 2020/07/05.
 //
 
-#ifndef NNDESCENT_AKNNG_HPP
-#define NNDESCENT_AKNNG_HPP
+#ifndef NNDESCENT_NNDESCENT_HPP
+#define NNDESCENT_NNDESCENT_HPP
 
 #include <arailib.hpp>
+#include <random>
 
 using namespace std;
 using namespace arailib;
 
-namespace aknng {
+namespace nndescent {
     struct Node {
         int id;
         Data<> data;
@@ -168,4 +169,4 @@ namespace aknng {
     };
 }
 
-#endif //NNDESCENT_AKNNG_HPP
+#endif //NNDESCENT_NNDESCENT_HPP

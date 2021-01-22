@@ -2,10 +2,11 @@
 <project version="4">
   <component name="PublishConfigData">
     <serverData>
-      <paths name="Remote (98bdb768-5a23-495e-b463-6f6d36234201)">
+      <paths name="Remote (5aa8689f-554b-4e5f-9d5b-2bf31a0550df)">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/tmp.aknng" local="$PROJECT_DIR$" />
+            <mapping deploy="/tmp/tmp.dH0F0yrqaE" local="$PROJECT_DIR$" />
+            <mapping deploy="/tmp/gdb/renderers" local="$USER_HOME$//Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/192.6262.62/CLion.app/Contents/bin/gdb/renderers" />
           </mappings>
           <excludedPaths>
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug-remote" />

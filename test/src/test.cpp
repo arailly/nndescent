@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <arailib.hpp>
-#include <aknng.hpp>
+#include <nndescent.hpp>
 
 using namespace std;
 using namespace arailib;
-using namespace aknng;
+using namespace nndescent;
 
 string base_dir = "/tmp/tmp.dH0F0yrqaE/test/src/";
 
