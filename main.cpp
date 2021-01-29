@@ -11,11 +11,12 @@ int main() {
 
     const auto start = get_now();
 
-    int n = 1000000, dim = 128, K = 50;
+    int n = 1000000, dim = 128, K = 20;
     AKNNG aknng(n, dim, K);
     aknng.build(data_path);
 
-    string save_path = base_dir + "/sift/index/aknng/data1m-K50.csv";
+    string save_path = base_dir + "/sift/index/aknng/data1m-K" +
+                                  to_string(K) + ".csv";
     aknng.save(save_path);
 
     const auto end = get_now();
