@@ -80,7 +80,36 @@ namespace nndescent {
             return 1;
         }
 
-        void build(const string& data_path) {
+        auto load_csv(const string& data_path, const string& graph_path) {
+            dataset.load(data_path);
+
+            ifstream ifs(graph_path);
+            if (!ifs) {
+                const string message = "Can't open file!: " + graph_path;
+                throw runtime_error(message);
+            }
+
+            string line;
+            while (getline(ifs, line)) {
+                const auto row = split<float>(line);
+                auto& neighbors = edgeset[row[0]];
+
+                if (neighbors.size() >= K)
+                    continue;
+
+                neighbors.emplace(row[2], row[1]);
+            }
+        }
+
+        auto load(const string& data_path, const string& graph_path) {
+            if (graph_path.rfind(".csv", graph_path.size()) < graph_path.size())
+                load_csv(data_path, graph_path);
+            else {
+                throw runtime_error("invalid file type");
+            }
+        }
+
+            void build(const string& data_path) {
             // init dataset
             dataset.load(data_path);
 

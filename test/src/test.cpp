@@ -30,5 +30,29 @@ TEST(aknng, save) {
 
     const char* save_path = "/tmp/sift10-K2.csv";
     aknng.save(save_path);
+
+    auto saved = AKNNG(n, dim, K);
+    saved.load(data_path, save_path);
+
+    ASSERT_EQ(
+            aknng.edgeset.size(),
+            saved.edgeset.size()
+            );
+
+    ASSERT_EQ(
+            aknng.edgeset[0].size(),
+            saved.edgeset[0].size()
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[0].begin()->second,
+            saved.edgeset[0].begin()->second
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[1].begin()->second,
+            saved.edgeset[1].begin()->second
+    );
+
     remove(save_path);
 }
