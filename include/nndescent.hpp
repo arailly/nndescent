@@ -80,36 +80,7 @@ namespace nndescent {
             return 1;
         }
 
-        auto load_csv(const string& data_path, const string& graph_path) {
-            dataset.load(data_path);
-
-            ifstream ifs(graph_path);
-            if (!ifs) {
-                const string message = "Can't open file!: " + graph_path;
-                throw runtime_error(message);
-            }
-
-            string line;
-            while (getline(ifs, line)) {
-                const auto row = split<float>(line);
-                auto& neighbors = edgeset[row[0]];
-
-                if (neighbors.size() >= K)
-                    continue;
-
-                neighbors.emplace(row[2], row[1]);
-            }
-        }
-
-        auto load(const string& data_path, const string& graph_path) {
-            if (graph_path.rfind(".csv", graph_path.size()) < graph_path.size())
-                load_csv(data_path, graph_path);
-            else {
-                throw runtime_error("invalid file type");
-            }
-        }
-
-            void build(const string& data_path) {
+        void build(const string& data_path) {
             // init dataset
             dataset.load(data_path);
 
@@ -145,23 +116,32 @@ namespace nndescent {
             }
         }
 
-        void save(const string& save_path) {
-            // csv
-            if (is_csv(save_path)) {
-                ofstream ofs(save_path);
-                string line;
-                for (int head_id = 0; head_id < n; ++head_id) {
-                    for (const auto& neighbor_pair : edgeset[head_id]) {
-                        line = to_string(head_id) + ',' +
-                               to_string(neighbor_pair.second) + ',' +
-                               to_string(neighbor_pair.first);
-                        ofs << line << endl;
-                    }
+        auto save_csv(const string& save_path) {
+            ofstream ofs(save_path);
+            string line;
+            for (int head_id = 0; head_id < n; ++head_id) {
+                for (const auto& neighbor_pair : edgeset[head_id]) {
+                    line = to_string(head_id) + ',' +
+                           to_string(neighbor_pair.second) + ',' +
+                           to_string(neighbor_pair.first);
+                    ofs << line << endl;
                 }
-                return;
             }
+        }
 
-            // dir
+        auto save_binary(const string& save_path) {
+            ofstream ofs(save_path, ios::binary);
+            for (int head_id = 0; head_id < n; ++head_id) {
+                // line: <K> <id_1> <id_2> ... <id_K>
+                vector<int> line{K};
+                for (const auto& neighbor_pair : edgeset[head_id]) {
+                    line.emplace_back(neighbor_pair.second);
+                }
+                ofs.write((char*)&line[0], (K + 1) * sizeof(int));
+            }
+        }
+
+        auto save_dir(const string& save_path) {
             vector<string> lines(static_cast<unsigned long>(ceil(n / 1000.0)));
             for (int head_id = 0; head_id < n; ++head_id) {
                 const size_t line_i = head_id / 1000;
@@ -177,6 +157,73 @@ namespace nndescent {
                 ofstream ofs(path);
                 ofs << lines[i];
             }
+        }
+
+        void save(const string& save_path) {
+            // csv
+            if (is_csv(save_path))
+                save_csv(save_path);
+            else if (ends_with(".ivecs", save_path))
+                save_binary(save_path);
+            else if (ends_with("/", save_path))
+                save_dir(save_path);
+            else
+                throw runtime_error("invalid file type");
+        }
+
+        auto load_csv(const string& data_path, const string& graph_path) {
+            dataset.load(data_path);
+
+            ifstream ifs(graph_path);
+            if (!ifs) {
+                const string message = "Can't open file!: " + graph_path;
+                throw runtime_error(message);
+            }
+
+            string line;
+            while (getline(ifs, line)) {
+                const auto row = split<float>(line);
+                auto& neighbors = edgeset[row[0]];
+
+                if (neighbors.size() >= K)
+                    continue;
+
+                neighbors.emplace(row[2], row[1]);
+            }
+        }
+
+        auto load_binary(const string& data_path, const string& graph_path) {
+            dataset.load(data_path);
+            ifstream ifs(graph_path, ios::binary);
+            vector<vector<int>> lines;
+            while (!ifs.eof()) {
+                vector<int> line(K + 1);
+                ifs.read((char*)&line[0], (K + 1) * sizeof(int));
+                lines.emplace_back(line);
+            }
+
+            for (int head_id = 0; head_id < n; ++head_id) {
+                const auto& line = lines[head_id];
+
+                if (line[0] != K)
+                    throw runtime_error("degree not matched");
+
+                for (int i = 1; i < K + 1; ++i) {
+                    const auto tail_id = line[i];
+                    const auto dist = calc_dist(
+                            dataset.find(head_id), dataset.find(tail_id));
+                    edgeset[head_id].emplace(dist, tail_id);
+                }
+            }
+        }
+
+        auto load(const string& data_path, const string& graph_path) {
+            if (is_csv(graph_path))
+                load_csv(data_path, graph_path);
+            else if (ends_with(".ivecs", graph_path))
+                load_binary(data_path, graph_path);
+            else
+                throw runtime_error("invalid file type");
         }
     };
 }

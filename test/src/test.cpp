@@ -56,3 +56,49 @@ TEST(aknng, save) {
 
     remove(save_path);
 }
+
+TEST(aknng, save_load_binary) {
+    string data_path = "/mnt/qnap/data/sift/sift_base.fvecs";
+
+    int n = 10, dim = 128, K = 2;
+    auto aknng = AKNNG(n, dim, K);
+    aknng.build(data_path);
+
+    const char* save_path = "/tmp/sift10-K2.ivecs";
+    aknng.save(save_path);
+
+    auto saved = AKNNG(n, dim, K);
+    saved.load(data_path, save_path);
+
+    ASSERT_EQ(
+            aknng.edgeset.size(),
+            saved.edgeset.size()
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[0].size(),
+            saved.edgeset[0].size()
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[0].begin()->second,
+            saved.edgeset[0].begin()->second
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[0].begin()->first,
+            saved.edgeset[0].begin()->first
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[1].begin()->second,
+            saved.edgeset[1].begin()->second
+    );
+
+    ASSERT_EQ(
+            aknng.edgeset[1].begin()->first,
+            saved.edgeset[1].begin()->first
+    );
+
+    remove(save_path);
+}

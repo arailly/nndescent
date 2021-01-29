@@ -306,8 +306,12 @@ namespace cpputil {
         return chrono::duration_cast<chrono::microseconds>(end - start).count();
     }
 
+    auto ends_with(const string& pattern, const string& str) {
+        return str.rfind(pattern, str.size()) < str.size();
+    }
+
     bool is_csv(const string& path) {
-        return (path.rfind(".csv", path.size()) < path.size());
+        return ends_with(".csv", path);
     }
 
     constexpr auto double_max = numeric_limits<double>::max();
@@ -459,7 +463,7 @@ namespace cpputil {
 
         using Data = vector<float>::const_iterator;
 
-        DataArray(int n, int dim): n(n), dim(dim) {}
+        DataArray(int n, int dim): n(n), dim(dim), x(n * dim) {}
 
         auto load(const vector<float>& v) { x = v; }
 
@@ -472,6 +476,10 @@ namespace cpputil {
             for (int i = 0; i < n; i++) {
                 int head = 0;
                 ifs.read((char*)&head, 4);
+
+                if (head != dim)
+                    throw runtime_error("dimension not matched");
+
                 ifs.read((char*)row, head * sizeof(float));
                 for (int j = 0; j < dim; j++) {
                     x[i * dim + j] = row[j];
@@ -480,18 +488,15 @@ namespace cpputil {
         }
 
         auto load(const string& path) {
-            x.resize(n * dim);
-
-            // if path ends with ".fvecs"
-            if (path.rfind(".fvecs", path.size()) < path.size())
+            if (ends_with(".fvecs", path))
                 load_fvecs(path);
             else
                 throw runtime_error("invalid file type");
         }
 
-        decltype(auto) operator[](size_t i) { return x[i]; }
+        decltype(auto) operator[](int i) { return x[i]; }
 
-        decltype(auto) find(size_t i) {
+        decltype(auto) find(int i) {
             return next(x.begin(), i * dim);
         }
     };
@@ -504,6 +509,59 @@ namespace cpputil {
         }
         result = sqrt(result);
         return result;
+    }
+
+    struct GroundTruth {
+        int n, k;
+        vector<vector<int>> x;
+
+        GroundTruth(int n, int k) : n(n), k(k), x(n) {}
+
+        auto load_ivecs(const string& path) {
+            ifstream ifs(path, ios::binary);
+            unsigned int *row = new unsigned int[k];
+            for (int i = 0; i < n; i++) {
+                int head;
+                ifs.read((char*)&head, 4);
+
+                if (head != k)
+                    throw runtime_error("k not matched");
+
+                ifs.read((char*)row, head * 4);
+                for (int j = 0; j < k; ++j) {
+                    x[i].emplace_back(row[j]);
+                }
+            }
+        }
+
+        decltype(auto) operator[](int i) { return x[i]; }
+
+        auto load(const string& path) {
+            if (ends_with(".ivecs", path))
+                load_ivecs(path);
+            else
+                throw runtime_error("invalid file type");
+        }
+    };
+
+    auto calc_recall(const Neighbors& actual, const vector<int>& expect,
+                     int k) {
+        float recall = 0;
+
+        for (int i = 0; i < k; ++i) {
+            const auto n1 = actual[i];
+            int match = 0;
+            for (int j = 0; j < k; ++j) {
+                const auto n2 = expect[j];
+                if (n1.id != n2) continue;
+                match = 1;
+                break;
+            }
+            recall += match;
+        }
+
+        recall /= actual.size();
+        return recall;
     }
 }
 
